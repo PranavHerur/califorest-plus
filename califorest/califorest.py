@@ -44,7 +44,7 @@ class CaliForest(ClassifierMixin, BaseEstimator):
                 )
             )
         if self.ctype == "logistic":
-            self.calibrator = LR(penalty="none", solver="saga", max_iter=5000)
+            self.calibrator = LR(penalty=None, solver="saga", max_iter=5000)
         elif self.ctype == "isotonic":
             self.calibrator = Iso(y_min=0, y_max=1, out_of_bounds="clip")
         n, m = X.shape
