@@ -27,8 +27,8 @@ def hosmer_lemeshow(y_true, y_score):
     # cut them into 10 bins
     df["score_decile"] = pd.qcut(df["rank"], n_grp, duplicates="raise")
     # sum up based on each decile
-    obsPos = df["target"].groupby(df.score_decile).sum()
-    obsNeg = df["target"].groupby(df.score_decile).count() - obsPos
+    obsPos = df["target"].groupby(df.score_decile, observed=True).sum()
+    obsNeg = df["target"].groupby(df.score_decile, observed=True).count() - obsPos
     exp = df["score"].groupby(df.score_decile, observed=True).sum()
     exNeg = df["score"].groupby(df.score_decile, observed=True).count() - exp
     hl = (((obsPos - exp) ** 2 / exp) + ((obsNeg - exNeg) ** 2 / exNeg)).sum()
@@ -48,7 +48,7 @@ def reliability(y_true, y_score):
     df["rank"] = list(range(df.shape[0]))
     df["score_decile"] = pd.qcut(df["rank"], n_grp, duplicates="raise")
 
-    obs = df["target"].groupby(df.score_decile).mean()
+    obs = df["target"].groupby(df.score_decile, observed=True).mean()
     exp = df["score"].groupby(df.score_decile, observed=True).mean()
 
     rel_small = np.mean((obs - exp) ** 2)
