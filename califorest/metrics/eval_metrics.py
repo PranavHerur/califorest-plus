@@ -60,7 +60,11 @@ def reliability(y_true, y_score):
 def spiegelhalter(y_true, y_score):
     top = np.sum((y_true - y_score) * (1 - 2 * y_score))
     bot = np.sum((1 - 2 * y_score) ** 2 * y_score * (1 - y_score))
-    sh = top / np.sqrt(bot)
+
+    if bot == 0:
+        sh = 0
+    else:
+        sh = top / np.sqrt(bot)
 
     # https://en.wikipedia.org/wiki/Z-test
     # Two-tailed test
