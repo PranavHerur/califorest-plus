@@ -14,7 +14,7 @@ from califorest import metrics as em
 import mimic_extract as mimic
 
 
-def read_data(dataset, random_seed):
+def read_data(dataset, random_seed, mimic_size="1000_subjects"):
 
     X_train, X_test, y_train, y_test = None, None, None, None
 
@@ -31,14 +31,27 @@ def read_data(dataset, random_seed):
         X, y = load_breast_cancer(return_X_y=True)
         X = poly.fit_transform(X)
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
+    elif dataset == "diabetes":
+        poly = PolynomialFeatures()
+        X, y = load_breast_cancer(return_X_y=True)
+        X = poly.fit_transform(X)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
     elif dataset == "mimic3_mort_hosp":
-        X_train, X_test, y_train, y_test = mimic.extract(random_seed, "mort_hosp")
+        X_train, X_test, y_train, y_test = mimic.extract(
+            random_seed, "mort_hosp", mimic_size
+        )
     elif dataset == "mimic3_mort_icu":
-        X_train, X_test, y_train, y_test = mimic.extract(random_seed, "mort_icu")
+        X_train, X_test, y_train, y_test = mimic.extract(
+            random_seed, "mort_icu", mimic_size
+        )
     elif dataset == "mimic3_los_3":
-        X_train, X_test, y_train, y_test = mimic.extract(random_seed, "los_3")
+        X_train, X_test, y_train, y_test = mimic.extract(
+            random_seed, "los_3", mimic_size
+        )
     elif dataset == "mimic3_los_7":
-        X_train, X_test, y_train, y_test = mimic.extract(random_seed, "los_7")
+        X_train, X_test, y_train, y_test = mimic.extract(
+            random_seed, "los_7", mimic_size
+        )
 
     return X_train, X_test, y_train, y_test
 
