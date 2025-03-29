@@ -54,3 +54,9 @@ analysis/data
 
 .venv/
 analysis/my_results/
+
+*.csv
+*.txt
+*.png
+*.pdf
+*.md
