@@ -100,7 +100,12 @@ def _run_model(model, X_train, X_test, y_train, y_test):
 
 def _venn_abers(model, X_train, X_test, y_train, y_test):
     va = VennAbersCalibrator(
-        estimator=model, inductive=True, cal_size=0.2, random_state=random_seed
+        estimator=model,
+        inductive=False,
+        cal_size=0.2,
+        random_state=random_seed,
+        n_splits=3,
+        precision=4,
     )
 
     # Fit on the training set
@@ -226,9 +231,9 @@ models = {
     ),
 }
 
-mimic_size = "1000_subjects"
-dataset = "diabetes"
-EXPERIMENTS = 20
+mimic_size = "5000_subjects"
+dataset = "mimic3_mort_hosp"
+EXPERIMENTS = 5
 
 X_train, X_test, y_train, y_test = read_data(
     dataset, random_seed=random_seed, mimic_size=mimic_size

@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import argparse
 import time
-from sklearn.datasets import make_hastie_10_2
+from sklearn.datasets import load_diabetes, load_iris, make_hastie_10_2
 from sklearn.datasets import load_breast_cancer
 from sklearn.metrics import roc_auc_score
 from sklearn.ensemble import RandomForestClassifier
@@ -31,11 +31,20 @@ def read_data(dataset, random_seed, mimic_size="1000_subjects"):
         X, y = load_breast_cancer(return_X_y=True)
         X = poly.fit_transform(X)
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
-    elif dataset == "diabetes":
-        poly = PolynomialFeatures()
-        X, y = load_breast_cancer(return_X_y=True)
-        X = poly.fit_transform(X)
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
+    elif dataset == "iris":
+        # Load iris dataset
+        print("Loading iris dataset...")
+        iris = load_iris()
+        X, y = iris.data, iris.target
+
+        # Convert to binary classification (class 0 vs rest)
+        y = (y == 0).astype(int)
+
+        # Split the data
+        print("Splitting data into train and test sets...")
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.2, random_state=42
+        )
     elif dataset == "mimic3_mort_hosp":
         X_train, X_test, y_train, y_test = mimic.extract(
             random_seed, "mort_hosp", mimic_size
