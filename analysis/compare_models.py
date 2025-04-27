@@ -192,7 +192,7 @@ def evaluate_models(
 
     # Run with different random seeds
     for seed in range(n_seeds):
-        print(f"\nSeed {seed}/{n_seeds-1}")
+        print(f"\nSeed {seed+1}/{n_seeds}")
 
         # Read data
         print(f"  Loading data...")
@@ -466,7 +466,7 @@ def main():
     parser.add_argument(
         "--dataset",
         type=str,
-        default="mimic3_mort_hosp",
+        default="mimic3_mort_icu",
         help="Dataset to use (e.g., breast_cancer, iris, hastie, mimic3_mort_icu)",
     )
     parser.add_argument(
