@@ -1,4 +1,4 @@
-from .califorest import CaliForest, ImprovedCaliForest
+from .califorest import CaliForest
 from .rc30 import RC30
 from .venn_abers1 import (
     VennAbersForest,
@@ -10,7 +10,6 @@ from .stlbrf import STLBRF
 __all__ = [
     "CaliForest",
     "RC30",
-    "ImprovedCaliForest",
     "VennAbersForest",
     "ImprovedVennAbersForest",
     "BayesianVennAbersForest",

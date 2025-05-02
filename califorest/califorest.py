@@ -20,7 +20,6 @@ class CaliForest(ClassifierMixin, BaseEstimator):
         alpha0=100,
         beta0=25,
         adaptive_alpha=True,
-        ensemble_calibration=False,
     ):
 
         self.n_estimators = n_estimators
@@ -32,7 +31,6 @@ class CaliForest(ClassifierMixin, BaseEstimator):
         self.alpha0 = alpha0
         self.beta0 = beta0
         self.adaptive_alpha = adaptive_alpha
-        self.ensemble_calibration = ensemble_calibration
 
     def fit(self, X, y):
         X, y = check_X_y(X, y, accept_sparse=False)
@@ -40,7 +38,7 @@ class CaliForest(ClassifierMixin, BaseEstimator):
         self.calibrator = None
         self.isotonic_calibrator = None
         self.logistic_calibrator = None
-        
+
         # Create decision tree estimators
         for i in range(self.n_estimators):
             self.estimators.append(
@@ -52,17 +50,13 @@ class CaliForest(ClassifierMixin, BaseEstimator):
                     max_features="sqrt",
                 )
             )
-            
+
         # Setup calibrators
         if self.ctype == "logistic":
             self.calibrator = LR(penalty=None, solver="saga", max_iter=5000)
         elif self.ctype == "isotonic":
             self.calibrator = Iso(y_min=0, y_max=1, out_of_bounds="clip")
-        
-        if self.ensemble_calibration:
-            self.isotonic_calibrator = Iso(y_min=0, y_max=1, out_of_bounds="clip")
-            self.logistic_calibrator = LR(penalty=None, solver="saga", max_iter=5000)
-            
+
         # Begin out-of-bag training setup
         n, m = X.shape
         Y_oob = np.full((n, self.n_estimators), np.nan)
@@ -91,14 +85,16 @@ class CaliForest(ClassifierMixin, BaseEstimator):
         # Adaptive alpha/beta parameters
         if self.adaptive_alpha:
             # Adjust alpha based on class imbalance
-            class_ratio = max(np.mean(y), 1-np.mean(y)) / min(np.mean(y), 1-np.mean(y))
+            class_ratio = max(np.mean(y), 1 - np.mean(y)) / min(
+                np.mean(y), 1 - np.mean(y)
+            )
             adjusted_alpha0 = self.alpha0 * np.sqrt(class_ratio)
             beta = self.beta0 + np.nanvar(Y_oob_, axis=1) * n_oob_ / 2
             alpha = adjusted_alpha0 + n_oob_ / 2
         else:
             beta = self.beta0 + np.nanvar(Y_oob_, axis=1) * n_oob_ / 2
             alpha = self.alpha0 + n_oob_ / 2
-            
+
         z_weight = alpha / beta
 
         # Fit calibrators
@@ -106,12 +102,7 @@ class CaliForest(ClassifierMixin, BaseEstimator):
             self.calibrator.fit(z_hat[:, np.newaxis], z_true, z_weight)
         elif self.ctype == "isotonic":
             self.calibrator.fit(z_hat, z_true, z_weight)
-        
-        # Fit ensemble calibrators if needed
-        if self.ensemble_calibration:
-            self.isotonic_calibrator.fit(z_hat, z_true, z_weight)
-            self.logistic_calibrator.fit(z_hat[:, np.newaxis], z_true, z_weight)
-            
+
         self.is_fitted_ = True
         return self
 
@@ -123,35 +114,17 @@ class CaliForest(ClassifierMixin, BaseEstimator):
         n_est = len(self.estimators)
         z = np.zeros(n)
         y_mat = np.zeros((n, 2))
-        
+
         # Get base predictions from all trees
         for eid, est in enumerate(self.estimators):
             z += est.predict_proba(X)[:, 1]
         z /= n_est
 
-        # Use ensemble calibration if enabled
-        if self.ensemble_calibration:
-            # Get predictions from both calibrators
-            if self.ctype == "isotonic":
-                # Primary calibrator is isotonic, secondary is logistic
-                isotonic_pred = self.calibrator.predict(z)
-                logistic_pred = self.logistic_calibrator.predict_proba(z[:, np.newaxis])[:, 1]
-                
-                # Average predictions, with more weight to isotonic (primary)
-                y_mat[:, 1] = 0.7 * isotonic_pred + 0.3 * logistic_pred
-            else:
-                # Primary calibrator is logistic, secondary is isotonic
-                logistic_pred = self.calibrator.predict_proba(z[:, np.newaxis])[:, 1]
-                isotonic_pred = self.isotonic_calibrator.predict(z)
-                
-                # Average predictions, with more weight to logistic (primary)
-                y_mat[:, 1] = 0.7 * logistic_pred + 0.3 * isotonic_pred
-        else:
-            # Use standard calibration with single calibrator
-            if self.ctype == "logistic":
-                y_mat[:, 1] = self.calibrator.predict_proba(z[:, np.newaxis])[:, 1]
-            elif self.ctype == "isotonic":
-                y_mat[:, 1] = self.calibrator.predict(z)
+        # Use standard calibration with single calibrator
+        if self.ctype == "logistic":
+            y_mat[:, 1] = self.calibrator.predict_proba(z[:, np.newaxis])[:, 1]
+        elif self.ctype == "isotonic":
+            y_mat[:, 1] = self.calibrator.predict(z)
 
         y_mat[:, 0] = 1 - y_mat[:, 1]
         return y_mat
@@ -159,81 +132,3 @@ class CaliForest(ClassifierMixin, BaseEstimator):
     def predict(self, X):
         proba = self.predict_proba(X)
         return np.argmax(proba, axis=1)
-
-
-class ImprovedCaliForest(CaliForest):
-    """
-    ImprovedCaliForest extends CaliForest with enhancements:
-    1. Ensemble calibration - combines isotonic and logistic calibration
-    2. Adaptive alpha parameter - adjusts based on class imbalance
-    3. Optimized for better reliability metrics
-    """
-    
-    def __init__(
-        self,
-        n_estimators=300,
-        criterion="gini",
-        max_depth=5,
-        min_samples_split=2,
-        min_samples_leaf=1,
-        ctype="isotonic",
-        alpha0=100,
-        beta0=25,
-        ensemble_weight=0.8
-    ):
-        self.ensemble_weight = ensemble_weight
-        super().__init__(
-            n_estimators=n_estimators,
-            criterion=criterion,
-            max_depth=max_depth,
-            min_samples_split=min_samples_split,
-            min_samples_leaf=min_samples_leaf,
-            ctype=ctype,
-            alpha0=alpha0,
-            beta0=beta0,
-            adaptive_alpha=True,  # Enable adaptive alpha by default
-            ensemble_calibration=True,  # Enable ensemble calibration by default
-        )
-    
-    def predict_proba(self, X):
-        """Override predict_proba to improve reliability"""
-        X = check_array(X)
-        check_is_fitted(self, "is_fitted_")
-
-        n, m = X.shape
-        n_est = len(self.estimators)
-        z = np.zeros(n)
-        y_mat = np.zeros((n, 2))
-        
-        # Get base predictions from all trees with variance reduction
-        tree_preds = np.zeros((n, n_est))
-        for eid, est in enumerate(self.estimators):
-            tree_preds[:, eid] = est.predict_proba(X)[:, 1]
-        
-        # Calculate mean and variance
-        z = np.mean(tree_preds, axis=1)
-        variance = np.var(tree_preds, axis=1)
-        
-        # Apply variance-based smoothing - higher variance gets more smoothing
-        primary_weight = self.ensemble_weight
-        
-        # Get predictions from both calibrators
-        if self.ctype == "isotonic":
-            # Primary calibrator is isotonic, secondary is logistic
-            isotonic_pred = self.calibrator.predict(z)
-            logistic_pred = self.logistic_calibrator.predict_proba(z[:, np.newaxis])[:, 1]
-            
-            # Weight based on variance - higher variance means rely more on ensemble
-            weights = primary_weight + (1 - primary_weight) * (1 - np.minimum(variance * 10, 0.5))
-            y_mat[:, 1] = weights * isotonic_pred + (1 - weights) * logistic_pred
-        else:
-            # Primary calibrator is logistic, secondary is isotonic
-            logistic_pred = self.calibrator.predict_proba(z[:, np.newaxis])[:, 1]
-            isotonic_pred = self.isotonic_calibrator.predict(z)
-            
-            # Weight based on variance
-            weights = primary_weight + (1 - primary_weight) * (1 - np.minimum(variance * 10, 0.5))
-            y_mat[:, 1] = weights * logistic_pred + (1 - weights) * isotonic_pred
-
-        y_mat[:, 0] = 1 - y_mat[:, 1]
-        return y_mat
