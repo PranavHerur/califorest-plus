@@ -86,13 +86,13 @@ def init_all_models(n_estimators=300, max_depth=10, random_state=42):
             min_samples_split=min_samples_split,
             min_samples_leaf=min_samples_leaf,
         ),
-        "STLBRF": STLBRF(
-            n_estimators=n_estimators,
-            max_depth=max_depth,
-            min_samples_split=min_samples_split,
-            min_samples_leaf=min_samples_leaf,
-            random_state=random_state,
-        ),
+        # "STLBRF": STLBRF(
+        #     n_estimators=n_estimators,
+        #     max_depth=max_depth,
+        #     min_samples_split=min_samples_split,
+        #     min_samples_leaf=min_samples_leaf,
+        #     random_state=random_state,
+        # ),
         "STLBRF2": STLBRF2(
             n_estimators=n_estimators,
             max_depth=max_depth,
@@ -289,7 +289,7 @@ def _create_chart(agg_results, title, metric, dataset, timestamp, output_dir):
     Plot a chart for a given metric.
     """
     plt.figure(figsize=(12, 6))
-    plt.bar(
+    bars = plt.bar(
         agg_results["model"],
         agg_results[f"{metric}_mean"],
         yerr=agg_results[f"{metric}_std"],
@@ -298,8 +298,25 @@ def _create_chart(agg_results, title, metric, dataset, timestamp, output_dir):
     plt.xlabel("Model")
     plt.ylabel(metric)
     plt.xticks(rotation=45, ha="right")
+
+    # Add text labels above each bar
+    for bar in bars:
+        yval = bar.get_height()
+        # Place text slightly above the bar, centered horizontally
+        plt.text(
+            bar.get_x() + bar.get_width() / 2.0,
+            yval,
+            f"{yval:.3f}",
+            va="bottom",
+            ha="center",
+        )
+
+    # Adjust y-limit to make space for labels if needed
+    plt.ylim(top=plt.ylim()[1] * 1.05)  # Increase upper y-limit by 5%
+
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, f"{dataset}_{metric}_{timestamp}.png"))
+    plt.close()  # Close the plot after saving
 
 
 def visualize_results(results_df, output_dir="figures"):
@@ -511,8 +528,10 @@ def main():
         mimic_size=args.mimic_size,
     )
 
+    output_dir = f"{args.figures_dir}/{args.dataset}/{args.mimic_size}"
+
     # Visualize results
-    visualize_results(results_df, output_dir=args.figures_dir)
+    visualize_results(results_df, output_dir=output_dir)
 
     # Plot calibration curves if requested
     if args.calibration_curves:
@@ -520,7 +539,7 @@ def main():
             dataset=args.dataset,
             model_names=args.models,
             seed=0,  # Use first seed
-            output_dir=args.figures_dir,
+            output_dir=output_dir,
             mimic_size=args.mimic_size,
         )
 

@@ -54,6 +54,8 @@ analysis/data
 
 .venv/
 analysis/my_results/
+garf_results/
+mopso_results/
 
 *.csv
 *.txt
