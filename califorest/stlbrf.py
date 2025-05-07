@@ -6,7 +6,7 @@ from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.utils.validation import check_X_y, check_array, check_is_fitted
 
 
-class STLBRF2(ClassifierMixin, BaseEstimator):
+class STLBRF(ClassifierMixin, BaseEstimator):
     """
     standardized threshold, and loops based random forest
 
