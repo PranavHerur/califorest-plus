@@ -1,4 +1,6 @@
+import os
 from pprint import pprint
+import time
 from sklearn.metrics import (
     accuracy_score,
     confusion_matrix,
@@ -8,20 +10,21 @@ from sklearn.metrics import (
 )
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import roc_auc_score
-from venn_abers import VennAbersCalibrator
 
+from analysis.run_chil_exp import read_data
 from califorest.califorest import CaliForest
 from califorest.rc30 import RC30
-from run_chil_exp import read_data
 from califorest import metrics as em
 
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from datetime import datetime
+
 
 n_estimators = 300
-max_depth = 8
+max_depth = 10
 min_samples_split = 3
 min_samples_leaf = 1
 random_seed = 42
@@ -97,35 +100,12 @@ def _run_model(model, X_train, X_test, y_train, y_test):
     return results
 
 
-def _venn_abers(model, X_train, X_test, y_train, y_test):
-    va = VennAbersCalibrator(
-        estimator=model,
-        inductive=False,
-        cal_size=0.2,
-        random_state=random_seed,
-        n_splits=3,
-        precision=4,
-    )
-
-    # Fit on the training set
-    va.fit(X_train, y_train)
-
-    # Generate probabilities and class predictions on the test set
-    p_prime = va.predict_proba(X_test)
-    y_pred = va.predict(X_test)
-
-    # effectiveness of classifer
-    print("with venn abers")
-    results = {**_metrics(y_test, p_prime[:, 1]), **_score_model(y_test, y_pred[:, 1])}
-    return results
-
-
 def _build_results_row(name, data):
     data["model"] = name
     return data
 
 
-def plot_results(results_df, dataset, mimic_size):
+def plot_results(results_df, output_dir):
     """Create boxplots of results"""
     # Set style for plots
     sns.set_style("whitegrid")
@@ -148,11 +128,8 @@ def plot_results(results_df, dataset, mimic_size):
         "CF-Iso": "skyblue",
         "CF-Logit": "lightgreen",
         "RC-Iso": "indianred",
+        "RC-Logit": "orange",
         "RF-NoCal": "lightgray",
-        "CF-Iso-va": "skyblue",
-        "CF-Logit-va": "lightgreen",
-        "RC-Iso-va": "indianred",
-        "RF-NoCal-va": "lightgray",
     }
 
     # Plot each metric
@@ -178,7 +155,8 @@ def plot_results(results_df, dataset, mimic_size):
 
     # Adjust layout
     plt.tight_layout()
-    plt.show()
+    # plt.show()
+    plt.savefig(f"{output_dir}/boxplot.png")
 
 
 models = {
@@ -203,6 +181,13 @@ models = {
         min_samples_leaf=min_samples_leaf,
         ctype="isotonic",
     ),
+    "RC-Logit": RC30(
+        n_estimators=n_estimators,
+        max_depth=max_depth,
+        min_samples_split=min_samples_split,
+        min_samples_leaf=min_samples_leaf,
+        ctype="logistic",
+    ),
     "RF-NoCal": RandomForestClassifier(
         n_estimators=n_estimators,
         max_depth=max_depth,
@@ -211,25 +196,50 @@ models = {
     ),
 }
 
-mimic_size = "1000_subjects"
-dataset = "mimic3_mort_hosp"
-EXPERIMENTS = 5
 
-X_train, X_test, y_train, y_test = read_data(
-    dataset, random_seed=random_seed, mimic_size=mimic_size
-)
+datasets = [
+    "mimic3_mort_hosp",
+    "mimic3_mort_icu",
+    "mimic3_los_3",
+    "mimic3_los_7",
+]
+mimic_size = "full_mimic3"
+EXPERIMENTS = 10
 
-results = []
-for exp_i in range(EXPERIMENTS):
-    print(f"running experiment run {exp_i}")
-    for name, model in models.items():
-        print(name)
-        vanila_results = _run_model(model, X_train, X_test, y_train, y_test)
-        va_results = _venn_abers(model, X_train, X_test, y_train, y_test)
-        print("*" * 5, end="\n\n")
+for dataset in datasets:
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_dir = f"califorest_original_results/{dataset}/{mimic_size}/{timestamp}"
+    os.makedirs(output_dir, exist_ok=True)
 
-        results.append(_build_results_row(name, vanila_results))
-        results.append(_build_results_row(f"{name}-va", va_results))
+    X_train, X_test, y_train, y_test = read_data(
+        dataset, random_seed=random_seed, mimic_size=mimic_size
+    )
 
-results_df = pd.DataFrame(results)
-plot_results(results_df, dataset, mimic_size)
+    print(f"starting experiment for {dataset} with {mimic_size} subjects")
+
+    results = []
+    total_time = time.time()
+    for exp_i in range(EXPERIMENTS):
+        experiment_start_time = time.time()
+        print(f"running experiment run {exp_i}")
+        for name, model in models.items():
+            print(name)
+            start_time = time.time()
+            metrics = _run_model(model, X_train, X_test, y_train, y_test)
+            end_time = time.time()
+            print(f"model {name} time taken: {end_time - start_time} seconds")
+            print("*" * 5, end="\n\n")
+
+            results.append(_build_results_row(name, metrics))
+        experiment_end_time = time.time()
+        print(
+            f"experiment {exp_i} time taken: {experiment_end_time - experiment_start_time} seconds"
+        )
+
+    total_time = time.time() - total_time
+    print(f"total time taken: {total_time} seconds")
+
+    results_df = pd.DataFrame(results)
+    plot_results(results_df, output_dir)
+
+    results_df.to_csv(f"{output_dir}/{dataset}_{mimic_size}.csv", index=False)

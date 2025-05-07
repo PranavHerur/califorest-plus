@@ -93,44 +93,44 @@ def init_all_models(n_estimators=300, max_depth=10, random_state=42):
         #     min_samples_leaf=min_samples_leaf,
         #     random_state=random_state,
         # ),
-        "STLBRF2": STLBRF2(
+        "STLBRF": STLBRF2(
             n_estimators=n_estimators,
             max_depth=max_depth,
             min_samples_split=min_samples_split,
             min_samples_leaf=min_samples_leaf,
             random_state=random_state,
         ),
-        "STLBRF_OOB": STLBRF_OOB(
-            n_estimators=n_estimators,
-            max_depth=max_depth,
-            min_samples_split=min_samples_split,
-            min_samples_leaf=min_samples_leaf,
-            random_state=random_state,
-        ),
-        "VennAbers": VennAbersForest(
-            n_estimators=n_estimators,
-            max_depth=max_depth,
-            min_samples_split=min_samples_split,
-            min_samples_leaf=min_samples_leaf,
-        ),
-        "ImprovedVennAbers": ImprovedVennAbersForest(
-            n_estimators=n_estimators,
-            max_depth=max_depth,
-            min_samples_split=min_samples_split,
-            min_samples_leaf=min_samples_leaf,
-        ),
-        "BayesianVennAbers": BayesianVennAbersForest(
-            n_estimators=n_estimators,
-            max_depth=max_depth,
-            min_samples_split=min_samples_split,
-            min_samples_leaf=min_samples_leaf,
-        ),
-        "VennAbersForest": VennAbersForest(
-            n_estimators=n_estimators,
-            max_depth=max_depth,
-            min_samples_split=min_samples_split,
-            min_samples_leaf=min_samples_leaf,
-        ),
+        # "STLBRF_OOB": STLBRF_OOB(
+        #     n_estimators=n_estimators,
+        #     max_depth=max_depth,
+        #     min_samples_split=min_samples_split,
+        #     min_samples_leaf=min_samples_leaf,
+        #     random_state=random_state,
+        # ),
+        # "VennAbers": VennAbersForest(
+        #     n_estimators=n_estimators,
+        #     max_depth=max_depth,
+        #     min_samples_split=min_samples_split,
+        #     min_samples_leaf=min_samples_leaf,
+        # ),
+        # "ImprovedVennAbers": ImprovedVennAbersForest(
+        #     n_estimators=n_estimators,
+        #     max_depth=max_depth,
+        #     min_samples_split=min_samples_split,
+        #     min_samples_leaf=min_samples_leaf,
+        # ),
+        # "BayesianVennAbers": BayesianVennAbersForest(
+        #     n_estimators=n_estimators,
+        #     max_depth=max_depth,
+        #     min_samples_split=min_samples_split,
+        #     min_samples_leaf=min_samples_leaf,
+        # ),
+        # "VennAbersForest": VennAbersForest(
+        #     n_estimators=n_estimators,
+        #     max_depth=max_depth,
+        #     min_samples_split=min_samples_split,
+        #     min_samples_leaf=min_samples_leaf,
+        # ),
     }
 
     return models

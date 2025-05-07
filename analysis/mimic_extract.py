@@ -128,7 +128,9 @@ def extract(random_seed, target, mimic_dir="1000_subjects"):
         for df in (lvl2_train, lvl2_test)
     ]
 
+    # print(lvl2_flat_train.head(1))
     # print(lvl2_flat_train.shape)
+
     # print(lvl2_flat_test.shape)
     # print(Ys_train.loc[:, target].values.shape)
     # print(Ys_test.loc[:, target].values.shape)

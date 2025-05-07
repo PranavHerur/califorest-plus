@@ -1,14 +1,12 @@
 import numpy as np
 from sklearn.tree import DecisionTreeClassifier as Tree
-from sklearn.linear_model import LogisticRegression as LR
-from sklearn.isotonic import IsotonicRegression as Iso
-from sklearn.calibration import CalibratedClassifierCV
+from sklearn.linear_model import LogisticRegression
+from sklearn.isotonic import IsotonicRegression
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.utils.validation import check_X_y, check_array, check_is_fitted
 
 
 class CaliForest(ClassifierMixin, BaseEstimator):
-
     def __init__(
         self,
         n_estimators=300,
@@ -19,9 +17,7 @@ class CaliForest(ClassifierMixin, BaseEstimator):
         ctype="isotonic",
         alpha0=100,
         beta0=25,
-        adaptive_alpha=True,
     ):
-
         self.n_estimators = n_estimators
         self.criterion = criterion
         self.max_depth = max_depth
@@ -30,17 +26,14 @@ class CaliForest(ClassifierMixin, BaseEstimator):
         self.ctype = ctype
         self.alpha0 = alpha0
         self.beta0 = beta0
-        self.adaptive_alpha = adaptive_alpha
 
     def fit(self, X, y):
         X, y = check_X_y(X, y, accept_sparse=False)
         self.estimators = []
         self.calibrator = None
-        self.isotonic_calibrator = None
-        self.logistic_calibrator = None
 
         # Create decision tree estimators
-        for i in range(self.n_estimators):
+        for _ in range(self.n_estimators):
             self.estimators.append(
                 Tree(
                     criterion=self.criterion,
@@ -53,9 +46,11 @@ class CaliForest(ClassifierMixin, BaseEstimator):
 
         # Setup calibrators
         if self.ctype == "logistic":
-            self.calibrator = LR(penalty=None, solver="saga", max_iter=5000)
+            self.calibrator = LogisticRegression(
+                penalty=None, solver="saga", max_iter=5000
+            )
         elif self.ctype == "isotonic":
-            self.calibrator = Iso(y_min=0, y_max=1, out_of_bounds="clip")
+            self.calibrator = IsotonicRegression(y_min=0, y_max=1, out_of_bounds="clip")
 
         # Begin out-of-bag training setup
         n, m = X.shape
@@ -82,19 +77,8 @@ class CaliForest(ClassifierMixin, BaseEstimator):
         z_hat = np.nanmean(Y_oob_, axis=1)
         z_true = y[oob_idx]
 
-        # Adaptive alpha/beta parameters
-        if self.adaptive_alpha:
-            # Adjust alpha based on class imbalance
-            class_ratio = max(np.mean(y), 1 - np.mean(y)) / min(
-                np.mean(y), 1 - np.mean(y)
-            )
-            adjusted_alpha0 = self.alpha0 * np.sqrt(class_ratio)
-            beta = self.beta0 + np.nanvar(Y_oob_, axis=1) * n_oob_ / 2
-            alpha = adjusted_alpha0 + n_oob_ / 2
-        else:
-            beta = self.beta0 + np.nanvar(Y_oob_, axis=1) * n_oob_ / 2
-            alpha = self.alpha0 + n_oob_ / 2
-
+        beta = self.beta0 + np.nanvar(Y_oob_, axis=1) * n_oob_ / 2
+        alpha = self.alpha0 + n_oob_ / 2
         z_weight = alpha / beta
 
         # Fit calibrators
@@ -116,7 +100,7 @@ class CaliForest(ClassifierMixin, BaseEstimator):
         y_mat = np.zeros((n, 2))
 
         # Get base predictions from all trees
-        for eid, est in enumerate(self.estimators):
+        for _, est in enumerate(self.estimators):
             z += est.predict_proba(X)[:, 1]
         z /= n_est
 

@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from sklearn.ensemble import RandomForestClassifier
+
 from sklearn.model_selection import cross_val_score
 from sklearn.metrics import roc_auc_score, brier_score_loss
 import time
@@ -9,6 +9,8 @@ import random
 from typing import List, Dict, Tuple, Any, Union, Optional
 import copy
 import os
+
+from califorest.rfva import RFVA
 
 
 class Particle:
@@ -430,7 +432,7 @@ class MOPSO:
         """
         # Create Random Forest with the particle's hyperparameters
         params = copy.deepcopy(particle.position)
-        rf = RandomForestClassifier(
+        rf = RFVA(
             n_estimators=params["n_estimators"],
             max_depth=params["max_depth"],
             min_samples_split=params["min_samples_split"],
@@ -465,7 +467,7 @@ class MOPSO:
                 X_fold_train, X_fold_val = X_train[train_idx], X_train[val_idx]
                 y_fold_train, y_fold_val = y_train[train_idx], y_train[val_idx]
 
-                rf_cv = RandomForestClassifier(
+                rf_cv = RFVA(
                     n_estimators=params["n_estimators"],
                     max_depth=params["max_depth"],
                     min_samples_split=params["min_samples_split"],

@@ -114,11 +114,8 @@ def main():
         "mimic3_mort_hosp", random_seed=RANDOM_SEED, mimic_size=mimic_size
     )
 
-    print(y_test)
-    exit()
-
-    _rfva(X_train, X_test, y_train, y_test)
-    _random_forest_baseline(X_train, X_test, y_train, y_test)
+    # _rfva(X_train, X_test, y_train, y_test)
+    # _random_forest_baseline(X_train, X_test, y_train, y_test)
 
 
 if __name__ == "__main__":
